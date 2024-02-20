@@ -419,13 +419,16 @@ public class Controller_main extends JFrame {
 				+ "\nCONTENTS 경로: " + contentsAddress + "\n\n입력한 정보가 맞으면 확인을 눌러주세요", "확인",
 				JOptionPane.OK_CANCEL_OPTION);
 
+		// 사용자가 확인 버튼을 눌렀을 때 true 반환
 		if (result == JOptionPane.OK_OPTION) {
 			return true;
 		}
+		// 사용자가 취소 버튼을 눌렀을 때 false 반환
 		return false;
 	}
 
 	private String makeURL() {
+		// ip와 port를 가지고 통신을 보낼 URL 생성
 		baseURL = "http://" + ip + ":" + port;
 		return baseURL;
 	}
@@ -1550,29 +1553,35 @@ public class Controller_main extends JFrame {
 		return result;
 	}
 
+	// CONTENTS 파일에서 폴더와 파일을 Tree 형태로 생성
 	public DefaultMutableTreeNode getFile(String path) {
 		File file = new File(path);
 		DefaultMutableTreeNode root = new DefaultMutableTreeNode(file.getName());
 
 		if (file.isDirectory()) {
-
+			// file 경로 안 파일들을 불러옴
 			File[] files = file.listFiles();
+
 			if (files.length == 0) {
 				root.add(new DefaultMutableTreeNode(file.getName()));
 			}
 			if (files != null) {
 				for (File child : files) {
+
+					// 특정 확장자를 제외하고 root 트리에 추가
 					if (!child.toString().endsWith(".hwc") && !child.toString().endsWith(".hws")
 							&& !child.toString().endsWith(".hwtxt") && !child.toString().contains("HiperwallAnimations")
 							&& !child.toString().contains("hiperwall_thumbs")
 							&& !child.toString().contains("schedules")) {
-						// System.out.println(child.toString());
 						root.add(getFile(child.getAbsolutePath()));
+
+						// 만약 .이 포함된 파일이라면 controllerFileList에 추가
 						if (child.toString().contains(".")) {
 							controllerFileList.add(child.toString());
+
+							// 만약 .이 포함되지 않고 .으로 끝나지 않는 폴더라면 folderNameList에 추가
 						} else if (!child.toString().endsWith(".")) {
 							String folderName = child.toString().replace(rootPath + "\\", "");
-
 							folderNameList.add(folderName);
 
 						}
@@ -1584,12 +1593,14 @@ public class Controller_main extends JFrame {
 		return root;
 	}
 
+	// 통합 컨트롤러 시작점
 	public static void main(String[] args) {
 		new Controller_main();
 	}
 
 }
 
+// 열려있는 파일을 담는 배열을 만들기 위한 클래스 
 class openFileList {
 	String name;
 	String id;
