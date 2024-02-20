@@ -638,656 +638,601 @@ public class Controller_main extends JFrame {
 
 	}
 
-	class HitBoxPanel extends JPanel { // 패널 클래스로 만들어서 추가 조정
-		private ArrayList<Rectangle> hitBoxes;
-
-		public HitBoxPanel(ArrayList<Rectangle> hitBoxes) {
-			this.hitBoxes = new ArrayList<>(hitBoxes);
-			setOpaque(false); // 기존 설정값과 동일하게
-		}
-
-		public void setHitBoxes(ArrayList<Rectangle> hitBoxes) {
-			this.hitBoxes = hitBoxes;
-			repaint(); // 호출되면 새로운 hitBoxes로 다시 그림
-		}
-
-		@Override
-		protected void paintComponent(Graphics g) {
-			super.paintComponent(g);
-			Graphics2D g2d = (Graphics2D) g;// .create();
-			g2d.setColor(Color.RED);
-			for (Rectangle rect : hitBoxes) {
-				g2d.fill(rect);
-			}
-			// g2d.dispose();
-		}
-
-		public void clear() {
-			// TODO Auto-generated method stub
-
-		}
-	}
-
-	class DraggablePanel extends JPanel {
-		Point initialClick;
-		JLabel label;
-		Component sourceComponent;
-		boolean pressed_flag;
-
-		private final int cornerSize = 10; // 조절점의 크기
-		private ArrayList<Rectangle> hitBoxes = new ArrayList<>();
-		private int hitBoxIndex = -1; // 선택된 조절점이 없을 때 -1
-		private boolean isSelected = false;
-		private HitBoxPanel hitBoxPanel; // 패널 추가해줌
-		private int currentWidth, currentHeight;
-		private float ratioW, ratioH;
-		private float originalWidth, originalHeight;
-		private Image originalImage;
-
-		public DraggablePanel(String text) {
-			setLayout(new BorderLayout());
-
-//         int desiredWidth = 112;
-//         int desiredHeight = 72;
-			currentWidth = 204;// desiredWidth;
-			currentHeight = 119;// desiredHeight;
-			ratioW = 1.0f;
-			ratioH = 1.0f;
-			originalWidth = currentWidth;
-			originalHeight = currentHeight;
-
-			ImageIcon imageIcon = new ImageIcon(text);
-			originalImage = imageIcon.getImage();
-			Image scaledImage = originalImage.getScaledInstance(currentWidth, currentHeight, Image.SCALE_SMOOTH);// desiredWidth,
-			// desiredHeight,
-			// Image.SCALE_SMOOTH);
-			ImageIcon scaledIcon = new ImageIcon(scaledImage);
-			this.label = new JLabel(scaledIcon);
-
-			this.label.setBounds(0, 0, currentWidth, currentHeight);// desiredWidth;
-
-			createHitBoxes();
-			hitBoxPanel = new HitBoxPanel(hitBoxes);
-			hitBoxPanel.setBounds(0, 0, currentWidth, currentHeight);// desiredWidth;
-
-			JLayeredPane layeredPane = new JLayeredPane();
-			layeredPane.setPreferredSize(new Dimension(currentWidth, currentHeight));// desiredWidth;
-			layeredPane.add(this.label, Integer.valueOf(0)); // JLabel을 기본 레이어에 추가
-			layeredPane.add(hitBoxPanel, Integer.valueOf(1)); // HitBoxPanel을 레이어 1에 추가
-
-			this.add(layeredPane, BorderLayout.CENTER);
-
-			DragSource dragSource = DragSource.getDefaultDragSource();
-			dragSource.createDefaultDragGestureRecognizer(this, DnDConstants.ACTION_COPY,
-					new FileDragGestureListener());
-
-			addMouseListener(new MouseAdapter() {
-
-				public void mouseClicked(MouseEvent e) {
-					Component c = (Component) e.getSource();
-					c.setFocusable(true);
-					c.requestFocus();
-
-					if (c instanceof DraggablePanel) {
-						DraggablePanel addPanel = (DraggablePanel) c;
-						clickPanel.add(addPanel);
-					}
-
-					initialClick = e.getPoint();
-
-					for (int i = 0; i < hitBoxes.size(); i++) {
-						if (hitBoxes.get(i).contains(initialClick)) {
-							hitBoxIndex = i;
-							isSelected = true;
-							// repaint();
-							revalidate();// 컴포넌트 크기, 레이아웃 계산
-							return;
-						}
-					}
-					if (!isSelected) {
-						isSelected = true;
-						createHitBoxes();
-						repaint();
-					} else if (isSelected) {
-						isSelected = false;
-						hitBoxes.clear();
-						repaint();
-					}
-
-				}
-
-				@Override
-				public void mouseReleased(MouseEvent e) {
-					if (e.getComponent() instanceof DraggablePanel) {
-						DraggablePanel releasedPanel = (DraggablePanel) e.getComponent();
-						releasedPanel.setSize(releasedPanel.currentWidth, releasedPanel.currentHeight);
-						releasedPanel.label.setSize(releasedPanel.currentWidth, releasedPanel.currentHeight);
-						revalidate();
-						hitBoxIndex = -1;
-					}
-				}
-			});
-
-			addMouseMotionListener(new MouseMotionAdapter() {
-				@Override
-				public void mouseDragged(MouseEvent e) {
-					// 드래그중인 패널을 식별합니다.
-					Component component = e.getComponent();
-					if (component instanceof DraggablePanel) {
-						DraggablePanel draggedPanel = (DraggablePanel) component;
-
-						initialClick = e.getPoint();
-						// 초기 클릭과 현재 위치의 차이를 구함
-						int deltaX = e.getX() - initialClick.x;
-						int deltaY = e.getY() - initialClick.y;
-
-						if (hitBoxIndex != -1 && isSelected) { // 조절점이 선택된 경우
-							// System.out.println("hitBox 값" + hitBoxIndex + "셀렉 여부" + isSelected);
-							resizePanel(e.getPoint());
-						} else if (hitBoxIndex == -1 && isSelected) {
-							// 드래그중인 패널의 f새 위치로 이동
-							int newX = draggedPanel.getX() + deltaX;
-							int newY = draggedPanel.getY() + deltaY;
-							draggedPanel.setLocation(newX, newY);
-							// draggedPanel.setBounds(newX, newY, draggedPanel.currentWidth,
-							// draggedPanel.currentHeight);
-							// draggedPanel.label.setSize(draggedPanel.currentWidth,
-							// draggedPanel.currentHeight);
-						}
-
-						// dragPanelOpenList에서 해당 패널을 찾아 속성을 업데이트합니다.
-						for (DraggablePanel panel : dragPanelOpenList) {
-							if (panel.getName().equals(draggedPanel.getName())) {
-								panel.setSize(draggedPanel.getWidth(), draggedPanel.getHeight());
-								break;
-							}
-						}
-						createHitBoxes();
-						repaint();
-					}
-				}
-			});
-
-			addKeyListener(new KeyListener() {
-
-				@Override
-				public void keyTyped(KeyEvent e) {
-					// TODO Auto-generated method stub
-
-				}
-
-				@Override
-				public void keyPressed(KeyEvent e) {
-					// TODO Auto-generated method stub
-					System.out.println(isSelected);
-					if (e.getKeyCode() == KeyEvent.VK_DELETE && isSelected) {
-						Component pressedComponent = e.getComponent();
-						JLayeredPane layeredPane = frame.getLayeredPane();
-
-						if (pressedComponent instanceof DraggablePanel) {
-							DraggablePanel draggablePanel = (DraggablePanel) pressedComponent;
-							String idValue = draggablePanel.getName();
-
-							for (DraggablePanel panel : dragPanelOpenList) {
-								if (panel.getName().equals(idValue)) {
-									sendDeleteXML(idValue);
-									// dragPanelOpenList에서 panel 지우기
-									layeredPane.remove(pressedComponent);
-									layeredPane.repaint();
-									dragPanelOpenList.remove(panel);
-									pressed_flag = false;
-									break;
-								}
-							}
-						}
-					}
-
-					// 좌우위아래 조절
-					if (e.getKeyCode() == KeyEvent.VK_DOWN && isSelected) {
-						int lastIndex = clickPanel.size() - 1;
-						int beforePanel = 0;
-						String panelID = "";
-
-						DraggablePanel currentDraggablePanel = null;
-						if (!clickPanel.isEmpty()) {
-							currentDraggablePanel = clickPanel.get(lastIndex);
-						}
-
-						for (openFileList item : openFileList) {
-							if (item.id.equals(currentDraggablePanel.getName())) {
-								beforePanel = item.panelNumber;
-								panelID = item.id;
-							}
-						}
-
-//                   for (openFileList item : openFileList) {
-//                      if (item.id.equals(clickPanel.get(lastIndex).getName())) {
-//                         beforePanel = item.panelNumber;
-//                         panelID = item.id;
-//                      }
-//                   }
-
-						if (1 <= beforePanel && beforePanel <= 4) {
-							int afterPanel = beforePanel + 4;
-							if (currentDraggablePanel != null) {
-								dropSendSizeChangeXML(panelID, afterPanel, currentDraggablePanel.ratioW,
-										currentDraggablePanel.ratioH, 0, 0);
-							}
-
-							int uiPointArray[] = getUiPoint(afterPanel);
-
-							if (currentDraggablePanel != null) {
-								currentDraggablePanel.setBounds(uiPointArray[0], uiPointArray[1],
-										currentDraggablePanel.getPreferredSize().width,
-										currentDraggablePanel.getPreferredSize().height);
-								currentDraggablePanel.revalidate();
-							}
-
-						}
-
-					}
-					if (e.getKeyCode() == KeyEvent.VK_UP && isSelected) {
-						int lastIndex = clickPanel.size() - 1;
-						int beforePanel = 0;
-						String panelID = "";
-
-						DraggablePanel currentDraggablePanel = null;
-						if (!clickPanel.isEmpty()) {
-							currentDraggablePanel = clickPanel.get(lastIndex);
-						}
-
-						for (openFileList item : openFileList) {
-							if (item.id.equals(currentDraggablePanel.getName())) {
-								beforePanel = item.panelNumber;
-								panelID = item.id;
-							}
-						}
-
-						if (5 <= beforePanel && beforePanel <= 8) {
-							int afterPanel = beforePanel - 4;
-
-							if (currentDraggablePanel != null) {
-								dropSendSizeChangeXML(panelID, afterPanel, currentDraggablePanel.ratioW,
-										currentDraggablePanel.ratioH, 0, 0);
-							}
-
-							int uiPointArray[] = getUiPoint(afterPanel);
-
-							if (currentDraggablePanel != null) {
-								currentDraggablePanel.setBounds(uiPointArray[0], uiPointArray[1],
-										currentDraggablePanel.getPreferredSize().width,
-										currentDraggablePanel.getPreferredSize().height);
-								currentDraggablePanel.revalidate();
-							}
-//                      clickPanel.get(lastIndex).setBounds(uiPointArray[0], uiPointArray[1],
-//                            clickPanel.get(lastIndex).getPreferredSize().width,
-//                            clickPanel.get(lastIndex).getPreferredSize().height);
-//                      clickPanel.get(lastIndex).revalidate();
-
-						}
-					}
-					// 숫자 바꾸기
-
-					if (e.getKeyCode() == KeyEvent.VK_LEFT && isSelected) {
-						int lastIndex = clickPanel.size() - 1;
-						int beforePanel = 0;
-						String panelID = "";
-
-						DraggablePanel currentDraggablePanel = null;
-						if (!clickPanel.isEmpty()) {
-							currentDraggablePanel = clickPanel.get(lastIndex);
-						}
-
-						for (openFileList item : openFileList) {
-							if (item.id.equals(currentDraggablePanel.getName())) {
-								beforePanel = item.panelNumber;
-								panelID = item.id;
-							}
-						}
-
-//                   for (openFileList item : openFileList) {
-//                      if (item.id.equals(clickPanel.get(lastIndex).getName())) {
-//                         beforePanel = item.panelNumber;
-//                         panelID = item.id;
-//                      }
-//                   }
-
-						if (2 <= beforePanel && beforePanel <= 4 || 6 <= beforePanel && beforePanel <= 8) {
-							int afterPanel = beforePanel - 1;
-
-							if (currentDraggablePanel != null) {
-								dropSendSizeChangeXML(panelID, afterPanel, currentDraggablePanel.ratioW,
-										currentDraggablePanel.ratioH, 0, 0);
-							}
-
-							int uiPointArray[] = getUiPoint(afterPanel);
-
-							if (currentDraggablePanel != null) {
-								currentDraggablePanel.setBounds(uiPointArray[0], uiPointArray[1],
-										currentDraggablePanel.getPreferredSize().width,
-										currentDraggablePanel.getPreferredSize().height);
-								currentDraggablePanel.revalidate();
-							}
-
-//                      clickPanel.get(lastIndex).setBounds(uiPointArray[0], uiPointArray[1],
-//                            clickPanel.get(lastIndex).getPreferredSize().width,
-//                            clickPanel.get(lastIndex).getPreferredSize().height);
-//                      clickPanel.get(lastIndex).revalidate();
-
-						}
-					}
-					if (e.getKeyCode() == KeyEvent.VK_RIGHT && isSelected) {
-						int lastIndex = clickPanel.size() - 1;
-						int beforePanel = 0;
-						String panelID = "";
-
-						DraggablePanel currentDraggablePanel = null;
-						if (!clickPanel.isEmpty()) {
-							currentDraggablePanel = clickPanel.get(lastIndex);
-						}
-
-						for (openFileList item : openFileList) {
-							if (item.id.equals(currentDraggablePanel.getName())) {
-								beforePanel = item.panelNumber;
-								panelID = item.id;
-							}
-						}
-
-						if (1 <= beforePanel && beforePanel <= 3 || 5 <= beforePanel && beforePanel <= 7) {
-							int afterPanel = beforePanel + 1;
-
-							if (currentDraggablePanel != null) {
-								dropSendSizeChangeXML(panelID, afterPanel, currentDraggablePanel.ratioW,
-										currentDraggablePanel.ratioH, 0, 0);
-							}
-
-							int uiPointArray[] = getUiPoint(afterPanel);
-
-							if (currentDraggablePanel != null) {
-								currentDraggablePanel.setBounds(uiPointArray[0], uiPointArray[1],
-										currentDraggablePanel.getPreferredSize().width,
-										currentDraggablePanel.getPreferredSize().height);
-								currentDraggablePanel.revalidate();
-							}
-
-						}
-					}
-				}
-
-				@Override
-				public void keyReleased(KeyEvent e) {
-					// TODO Auto-generated method stub
-
-				}
-			});
-
-			addMouseWheelListener(new MouseWheelListener() {
-
-				@Override
-				public void mouseWheelMoved(MouseWheelEvent e) {
-					isSelected = true;
-
-					float fixedRatio = 0.1f;
-					if (e.getWheelRotation() < 0) {
-						ratioW *= (1 + fixedRatio);
-						ratioH *= (1 + fixedRatio);
-					} else if (e.getWheelRotation() > 0) {
-						ratioW *= (1 - fixedRatio);
-						ratioH *= (1 - fixedRatio);
-					}
-
-					updatePanelSize();
-
-					DraggablePanel c = DraggablePanel.this;
-
-					int subW = (int) (c.currentWidth > (c.currentWidth * ratioW)
-							? c.currentWidth - (c.currentWidth * ratioW)
-							: (c.currentWidth * ratioW) - c.currentWidth);
-					int subH = (int) (c.currentHeight > (c.currentHeight * ratioH)
-							? c.currentHeight - (c.currentHeight * ratioH)
-							: (c.currentHeight * ratioH) - c.currentHeight);
-					dropSendSizeChangeXML(DraggablePanel.this.getName(), panelResult, ratioW, ratioH, subW, subH);
-				}
-
-			});
-
-		}
-
-		private void updatePanelSize() {
-			int newWidth = (int) (originalWidth * ratioW);
-			int newHeight = (int) (originalHeight * ratioH);
-
-			// 현재 크기를 업데이트합니다.
-			currentWidth = newWidth;
-			currentHeight = newHeight;
-
-			this.setSize(newWidth, newHeight);
-
-			resizeImage(newWidth, newHeight);
-
-			label.setSize(new Dimension(newWidth, newHeight));
-			createHitBoxes();
-
-			this.revalidate();
-			this.repaint();
-		}
-
-		private void createHitBoxes() {
-			if (!isSelected) {
-				return;
-			}
-
-			int w = currentWidth;
-			int h = currentHeight;
-			hitBoxes.clear();
-			// 모서리에 조절점 추가
-			hitBoxes.add(new Rectangle(0, 0, cornerSize, cornerSize)); // 좌상단
-			hitBoxes.add(new Rectangle(w - cornerSize, 0, cornerSize, cornerSize)); // 우상단
-			hitBoxes.add(new Rectangle(0, h - cornerSize, cornerSize, cornerSize)); // 좌하단
-			hitBoxes.add(new Rectangle(w - cornerSize, h - cornerSize, cornerSize, cornerSize)); // 우하단
-			// 가장자리 중앙에 조절점 추가
-			hitBoxes.add(new Rectangle(w / 2 - cornerSize / 2, 0, cornerSize, cornerSize)); // 상단 중앙
-			hitBoxes.add(new Rectangle(w / 2 - cornerSize / 2, h - cornerSize, cornerSize, cornerSize)); // 하단 중앙
-			hitBoxes.add(new Rectangle(0, h / 2 - cornerSize / 2, cornerSize, cornerSize)); // 왼쪽 중앙
-			hitBoxes.add(new Rectangle(w - cornerSize, h / 2 - cornerSize / 2, cornerSize, cornerSize)); // 오른쪽 중앙
-
-			// hitBoxPanel의 크기와 위치를 업데이트합니다.
-			if (hitBoxPanel != null) {
-				hitBoxPanel.setHitBoxes(hitBoxes);
-				hitBoxPanel.setSize(new Dimension(w, h));
-				hitBoxPanel.revalidate();
-				hitBoxPanel.repaint();
-//              hitBoxPanel.setHitBoxes(hitBoxes);
-//              hitBoxPanel.setBounds(0, 0, w, h);
-			}
-		}
-
-		@Override
-		protected void paintComponent(Graphics g) {
-			super.paintComponent(g);
-			Graphics2D g2d = (Graphics2D) g;
-			if (isSelected) {
-				// System.out.println("hi");
-				g2d.setColor(Color.RED);
-				for (Rectangle rect : hitBoxes) {
-					g2d.fill(rect);
-				}
-			}
-		}
-
-		public void resizeImage(int width, int height) {
-			Image resizedImg = originalImage.getScaledInstance(width, height, Image.SCALE_SMOOTH);
-			label.setIcon(new ImageIcon(resizedImg));
-		}
-
-		private void resizePanel(Point p) {
-			int dx = p.x - initialClick.x;
-			int dy = p.y - initialClick.y;
-			int newWidth = getWidth();
-			int newHeight = getHeight();
-			// 선택된 조절점에 따라 패널 크기 조절 로직 구현
-			if (hitBoxIndex == 0) { // 좌상단
-				newWidth = getWidth() - dx;
-				newHeight = getHeight() - dy;
-				setBounds(getX() + dx, getY() + dy, newWidth, newHeight);
-			} else if (hitBoxIndex == 1) { // 우상단
-				newWidth = getWidth() + dx;
-				newHeight = getHeight() - dy;
-				setBounds(getX(), getY() + dy, newWidth, newHeight);
-			} else if (hitBoxIndex == 2) { // 좌하단
-				newWidth = getWidth() - dx;
-				newHeight = getHeight() + dy;
-				setBounds(getX() + dx, getY(), newWidth, newHeight);
-			} else if (hitBoxIndex == 3) { // 우하단
-				newWidth = getWidth() + dx;
-				newHeight = getHeight() + dy;
-				setBounds(getX(), getY(), newWidth, newHeight);
-			}
-			// 상단 중앙 조절점 선택 시
-			else if (hitBoxIndex == 4) {
-				newHeight = getHeight() - dy;
-				setBounds(getX(), getY() + dy, getWidth(), newHeight); // 변수별로 받아서 x,y
-			}
-			// 하단 중앙 조절점 선택 시
-			else if (hitBoxIndex == 5) {
-				newHeight = getHeight() + dy;
-				setBounds(getX(), getY(), getWidth(), newHeight);
-			}
-			// 왼쪽 중앙 조절점 선택 시
-			else if (hitBoxIndex == 6) {
-				newWidth = getWidth() - dx;
-				setBounds(getX() + dx, getY(), newWidth, getHeight());
-			}
-			// 오른쪽 중앙 조절점 선택 시
-			else if (hitBoxIndex == 7) {
-				newWidth = getWidth() + dx;
-				setBounds(getX(), getY(), newWidth, getHeight());
-			}
-
-			setBounds(getX(), getY(), newWidth, newHeight);
-			label.setSize(newWidth, newHeight);
-			resizeImage(newWidth, newHeight);
-			currentWidth = newWidth;
-			currentHeight = newHeight;
-
-			ratioW = currentWidth / originalWidth;
-			ratioH = currentHeight / originalHeight;
-			createHitBoxes();
-			hitBoxPanel.setBounds(0, 0, currentWidth, currentHeight);
-
-			dropSendSizeChangeXML(this.getName(), panelResult, ratioW, ratioH, 0, 0);
-			// hitBoxes.clear();
-			// repaint();
-			revalidate();
-		}
-
-		private void dropSendSizeChangeXML(String id, int panelNumber, float currentWidthRatio,
-				float currentHeightRatio, int subW, int subH) {
-			try {
-
-				int[] pointArray = getXYPoint(panelNumber);
-
-				String xmlString = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\" ?>";
-				xmlString += "<Commands>";
-				xmlString += "<command type=\"change\">";
-				xmlString += "<id>" + id + "</id>";
-
-				if (panelNumber == 3) {
-					xmlString += "<x>" + (pointArray[0] * currentWidthRatio) + "</x>";
-					xmlString += "<y>" + (2 * pointArray[1] - (pointArray[1] * currentHeightRatio)) + "</y>";
-				}
-				if (panelNumber == 2) {
-					xmlString += "<x>" + (pointArray[0] * (2 - currentWidthRatio)) + "</x>";
-					xmlString += "<y>" + (2 * pointArray[1] - (pointArray[1] * currentHeightRatio)) + "</y>";
-				}
-				if (panelNumber == 6) {
-					System.out.println(currentWidthRatio);
-					xmlString += "<x>" + (pointArray[0] * (2 - currentWidthRatio)) + "</x>";
-					System.out.println(xmlString);
-					xmlString += "<y>" + ((pointArray[1] * currentHeightRatio)) + "</y>";
-				}
-				if (panelNumber == 7) {
-					System.out.println(currentWidthRatio);
-					xmlString += "<x>" + (pointArray[0] * currentWidthRatio) + "</x>";
-					System.out.println(xmlString);
-					xmlString += "<y>" + (pointArray[1] * currentHeightRatio) + "</y>";
-				}
-				if (panelNumber == 1) {
-					System.out.println(currentWidthRatio);
-					xmlString += "<x>" + (pointArray[0] + (pointArray[0] * (currentWidthRatio - 1) * -1 / 3)) + "</x>";
-					System.out.println(xmlString);
-					xmlString += "<y>" + (2 * pointArray[1] - (pointArray[1] * currentHeightRatio)) + "</y>";
-				}
-
-				if (panelNumber == 5) {
-
-					xmlString += "<x>" + (pointArray[0] + (pointArray[0] * (currentWidthRatio - 1) * -1 / 3)) + "</x>";
-					xmlString += "<y>" + ((pointArray[1] * currentHeightRatio)) + "</y>";
-				}
-				if (panelNumber == 4) {
-
-					xmlString += "<x>" + (pointArray[0] - (pointArray[0] * (currentWidthRatio - 1) * -1 / 3)) + "</x>";
-					System.out.println(xmlString);
-					xmlString += "<y>" + (2 * pointArray[1] - (pointArray[1] * currentHeightRatio)) + "</y>";
-
-				}
-				if (panelNumber == 8) {
-
-					xmlString += "<x>" + (pointArray[0] - (pointArray[0] * (currentWidthRatio - 1) * -1 / 3)) + "</x>";
-					xmlString += "<y>" + ((pointArray[1] * currentHeightRatio)) + "</y>";
-
-				}
-
-				xmlString += "<boundsfill>1</boundsfill>";
-				xmlString += "<boundsh>" + (1080 * currentHeightRatio) + "</boundsh>";
-				xmlString += "<boundsw>" + (1927 * currentWidthRatio) + "</boundsw>";
-				xmlString += "</command>";
-				xmlString += "</Commands>";
-
-				URL requestURL = new URL(baseURL + "/xmlcommand");
-				HttpURLConnection requestConnection = (HttpURLConnection) requestURL.openConnection();
-				requestConnection.setRequestMethod("POST");
-				requestConnection.setDoOutput(true);
-				OutputStream reqStream = requestConnection.getOutputStream();
-				reqStream.write(xmlString.getBytes("UTF8"));
-
-				if (requestConnection.getResponseCode() == 200) {
-//               System.out.println(
-//                     "Success to drag sizechange " + id + " response : " + requestConnection.getResponseCode());
-
-					for (openFileList item : openFileList) {
-						if (item.id.equals(id)) {
-							item.panelNumber = panelNumber;
-						}
-					}
-
-					SwingUtilities.invokeLater(new Runnable() {
-						public void run() {
-
-							DraggablePanel selectedPanel = null;
-							for (DraggablePanel panel : dragPanelOpenList) {
-								if (panel.getName().equals(id)) {
-									selectedPanel = panel;
-								}
-							}
-
-							int uiPointArray[] = getUiPoint(panelNumber);
-
-							selectedPanel.setBounds(uiPointArray[0], uiPointArray[1],
-									(int) (selectedPanel.getPreferredSize().width * currentWidthRatio),
-									(int) (selectedPanel.getPreferredSize().height * currentHeightRatio));
-							selectedPanel.revalidate();
-						}
-					});
-				} else
-					System.out.println(
-							"Failed to drag change " + id + " response: " + requestConnection.getResponseCode());
-			} catch (Exception e) {
-				System.out.println("Failed to drag open error: " + e);
-			}
-		}
-
-	}
+	class HitBoxPanel extends JPanel {
+	      private ArrayList<Rectangle> hitBoxes;
+
+	      public HitBoxPanel(ArrayList<Rectangle> hitBoxes) {
+	         this.hitBoxes = new ArrayList<>(hitBoxes); //인수로 클래스 멤버변수 초기화
+	         setOpaque(false); // 배경 투명하게 설정
+	      }
+
+	      public void setHitBoxes(ArrayList<Rectangle> hitBoxes) {
+	         this.hitBoxes = hitBoxes;
+	         repaint(); // 호출되면 새로운 hitBoxes로 다시 그림
+	      }
+
+	      @Override
+	      protected void paintComponent(Graphics g) {
+	         super.paintComponent(g);
+	         Graphics2D g2d = (Graphics2D) g;
+	         g2d.setColor(Color.RED);
+	         for (Rectangle rect : hitBoxes) {
+	            g2d.fill(rect);
+	         }
+	      }
+
+	      public void clear() {
+	         // TODO Auto-generated method stub
+	      }
+	   }
+
+	   class DraggablePanel extends JPanel {
+	      Point initialClick;
+	      JLabel label;
+	      Component sourceComponent;
+	      boolean pressed_flag;
+
+	      private final int cornerSize = 10; // 조절점의 크기
+	      private ArrayList<Rectangle> hitBoxes = new ArrayList<>();
+	      private int hitBoxIndex = -1; // 선택된 조절점이 없을 때 -1
+	      private boolean isSelected = false; //
+	      private HitBoxPanel hitBoxPanel; // 패널 추가해줌
+	      private int currentWidth, currentHeight;
+	      private float ratioW, ratioH;
+	      private float originalWidth, originalHeight;
+	      private Image originalImage;
+
+	      public DraggablePanel(String text) {
+	         setLayout(new BorderLayout());
+
+	         currentWidth = 204;// 월 한 칸 크기 만큼
+	         currentHeight = 119; //기본 크기
+	         ratioW = 1.0f;
+	         ratioH = 1.0f;
+	         originalWidth = currentWidth; //204
+	         originalHeight = currentHeight; //119
+
+	         ImageIcon imageIcon = new ImageIcon(text); //text로 이미지 경로 가져와서
+	         originalImage = imageIcon.getImage(); //원본 이미지 저장
+	         Image scaledImage = originalImage.getScaledInstance(currentWidth, currentHeight, Image.SCALE_SMOOTH);
+	         ImageIcon scaledIcon = new ImageIcon(scaledImage);
+	         this.label = new JLabel(scaledIcon);
+
+	         this.label.setBounds(0, 0, currentWidth, currentHeight);// 이미지를 label에 넣어 크기 조절
+
+	         createHitBoxes();
+	         hitBoxPanel = new HitBoxPanel(hitBoxes);
+	         hitBoxPanel.setBounds(0, 0, currentWidth, currentHeight);
+
+	         JLayeredPane layeredPane = new JLayeredPane();
+	         layeredPane.setPreferredSize(new Dimension(currentWidth, currentHeight));
+	         layeredPane.add(this.label, Integer.valueOf(0)); // JLabel을 기본 레이어에 추가
+	         layeredPane.add(hitBoxPanel, Integer.valueOf(1)); // HitBoxPanel을 레이어 1에 추가
+
+	         this.add(layeredPane, BorderLayout.CENTER);
+
+	         DragSource dragSource = DragSource.getDefaultDragSource();
+	         dragSource.createDefaultDragGestureRecognizer(this, DnDConstants.ACTION_COPY,
+	               new FileDragGestureListener()); // 드래그 제스처 리스너를 등록해서 사용자가 드래그를 시작할 때 호출
+
+	         addMouseListener(new MouseAdapter() {
+
+	            public void mouseClicked(MouseEvent e) {
+	               Component c = (Component) e.getSource();
+	               c.setFocusable(true);
+	               c.requestFocus();
+
+	               if (c instanceof DraggablePanel) { //클릭된 객체가 draggablePanel이면
+	                  DraggablePanel addPanel = (DraggablePanel) c;
+	                  clickPanel.add(addPanel); // 리스트 추가해줌
+
+		               initialClick = e.getPoint();
+		
+		               for (int i = 0; i < hitBoxes.size(); i++) {
+		                  if (hitBoxes.get(i).contains(initialClick)) { //조절점 클릭 여부 확인
+		                     hitBoxIndex = i;
+		                     isSelected = true;
+		                     revalidate();// 컴포넌트 크기, 레이아웃 계산
+		                     return;
+		                  }
+		               }
+		               if (!isSelected) {
+		                  isSelected = true;
+		                  createHitBoxes(); // 조절점 생성
+		                  repaint();
+		               } else if (isSelected) {
+		                  isSelected = false;
+		                  hitBoxes.clear(); // 조절점 삭제
+		                  repaint();
+		               }
+	               }
+	            }
+
+	            @Override
+	            public void mouseReleased(MouseEvent e) { //드래그 끝나면
+	               if (e.getComponent() instanceof DraggablePanel) {
+	                  DraggablePanel releasedPanel = (DraggablePanel) e.getComponent();
+	                  releasedPanel.setSize(releasedPanel.currentWidth, releasedPanel.currentHeight);
+	                  releasedPanel.label.setSize(releasedPanel.currentWidth, releasedPanel.currentHeight);
+	                  revalidate();
+	                  hitBoxIndex = -1;
+	               }
+	            }
+	         });
+	         
+
+	         addMouseMotionListener(new MouseMotionAdapter() {
+	            @Override
+	            public void mouseDragged(MouseEvent e) { 
+	               
+	               Component component = e.getComponent();
+	               if (component instanceof DraggablePanel) { // 드래그중인 패널을 식별
+	                  DraggablePanel draggedPanel = (DraggablePanel) component;
+
+	                  initialClick = e.getPoint();
+	                  
+	                  int deltaX = e.getX() - initialClick.x; // 초기 클릭과 현재 위치의 차이를 구함
+	                  int deltaY = e.getY() - initialClick.y;
+
+	                  if (hitBoxIndex != -1 && isSelected) { // 조절점이 선택된 경우
+	                     resizePanel(e.getPoint());
+	                  }
+	                  else if (hitBoxIndex == -1 && isSelected) {
+	                     int newX = draggedPanel.getX() + deltaX; // 드래그중인 패널의 f새 위치로 이동
+	                     int newY = draggedPanel.getY() + deltaY;
+	                     draggedPanel.setLocation(newX, newY);
+	                  }
+
+	                  for (DraggablePanel panel : dragPanelOpenList) {
+	                     if (panel.getName().equals(draggedPanel.getName())) { //해당 패널을 찾아 속성 업데이트
+	                        panel.setSize(draggedPanel.getWidth(), draggedPanel.getHeight());
+	                        break;
+	                     }
+	                  }
+	                  createHitBoxes();
+	                  repaint();
+	               }
+	            }
+	         });
+
+	         addKeyListener(new KeyListener() {
+
+	             @Override
+	             public void keyTyped(KeyEvent e) {
+	                // TODO Auto-generated method stub
+
+	             }
+
+	             @Override
+	             public void keyPressed(KeyEvent e) {
+
+	                System.out.println(isSelected);
+	                if (e.getKeyCode() == KeyEvent.VK_DELETE && isSelected) {
+	                   Component pressedComponent = e.getComponent();
+	                   JLayeredPane layeredPane = frame.getLayeredPane();
+
+	                   if (pressedComponent instanceof DraggablePanel) {
+	                      DraggablePanel draggablePanel = (DraggablePanel) pressedComponent;
+	                      String idValue = draggablePanel.getName();
+
+	                      for (DraggablePanel panel : dragPanelOpenList) {
+	                         if (panel.getName().equals(idValue)) {
+	                            sendDeleteXML(idValue);
+	                            // dragPanelOpenList에서 panel 지우기
+	                            layeredPane.remove(pressedComponent);
+	                            layeredPane.repaint();
+	                            dragPanelOpenList.remove(panel);
+	                            pressed_flag = false;
+	                            break;
+	                         }
+	                      }
+	                   }
+	                }
+
+	                // 좌우위아래 조절
+	                if (e.getKeyCode() == KeyEvent.VK_DOWN && isSelected) {
+	                   int lastIndex = clickPanel.size() - 1;
+	                   int beforePanel = 0;
+	                   String panelID = "";
+	                   
+	                   DraggablePanel currentDraggablePanel = null;
+	                   if (!clickPanel.isEmpty()) {
+	                       currentDraggablePanel = clickPanel.get(lastIndex);
+	                   }
+
+	                   for (openFileList item : openFileList) {
+	                      if (item.id.equals(currentDraggablePanel.getName())) {
+	                         beforePanel = item.panelNumber;
+	                         panelID = item.id;
+	                      }
+	                   }
+
+	                   if (1 <= beforePanel && beforePanel <= 4) {
+	                      int afterPanel = beforePanel + 4;
+	                      if (currentDraggablePanel != null) {
+	                     	 dropSendSizeChangeXML(panelID, afterPanel, currentDraggablePanel.ratioW, currentDraggablePanel.ratioH, 0, 0);
+	                      }
+	                      
+	                      int uiPointArray[] = getUiPoint(afterPanel);
+
+	                      if (currentDraggablePanel != null) {
+	                          currentDraggablePanel.setBounds(uiPointArray[0], uiPointArray[1],
+	                                  currentDraggablePanel.getPreferredSize().width,
+	                                  currentDraggablePanel.getPreferredSize().height);
+	                          currentDraggablePanel.revalidate();
+	                      }
+
+	                   }
+
+	                }
+	                if (e.getKeyCode() == KeyEvent.VK_UP && isSelected) {
+	                   int lastIndex = clickPanel.size() - 1;
+	                   int beforePanel = 0;
+	                   String panelID = "";
+	                   
+	                   DraggablePanel currentDraggablePanel = null;
+	                   if (!clickPanel.isEmpty()) {
+	                       currentDraggablePanel = clickPanel.get(lastIndex);
+	                   }
+
+	                   for (openFileList item : openFileList) {
+	                      if (item.id.equals(currentDraggablePanel.getName())) {
+	                         beforePanel = item.panelNumber;
+	                         panelID = item.id;
+	                      }
+	                   }
+
+	                   if (5 <= beforePanel && beforePanel <= 8) {
+	                      int afterPanel = beforePanel - 4;
+	                      
+	                      if (currentDraggablePanel != null) {
+	                     	 dropSendSizeChangeXML(panelID, afterPanel, currentDraggablePanel.ratioW, currentDraggablePanel.ratioH, 0, 0);
+	                      }
+	                      
+	                      int uiPointArray[] = getUiPoint(afterPanel);
+
+	                      if (currentDraggablePanel != null) {
+	                          currentDraggablePanel.setBounds(uiPointArray[0], uiPointArray[1],
+	                                  currentDraggablePanel.getPreferredSize().width,
+	                                  currentDraggablePanel.getPreferredSize().height);
+	                          currentDraggablePanel.revalidate();
+	                      }             
+	                   }
+	                }
+	                // 숫자 바꾸기
+
+	                if (e.getKeyCode() == KeyEvent.VK_LEFT && isSelected) {
+	                   int lastIndex = clickPanel.size() - 1;
+	                   int beforePanel = 0;
+	                   String panelID = "";
+	                   
+	                   DraggablePanel currentDraggablePanel = null;
+	                   if (!clickPanel.isEmpty()) {
+	                       currentDraggablePanel = clickPanel.get(lastIndex);
+	                   }
+
+	                   for (openFileList item : openFileList) {
+	                       if (item.id.equals(currentDraggablePanel.getName())) {
+	                           beforePanel = item.panelNumber;
+	                           panelID = item.id;
+	                       }
+	                   }
+
+	                   if (2 <= beforePanel && beforePanel <= 4 || 6 <= beforePanel && beforePanel <= 8) {
+	                      int afterPanel = beforePanel - 1;
+	                      
+	                      if (currentDraggablePanel != null) {
+	                     	 dropSendSizeChangeXML(panelID, afterPanel, currentDraggablePanel.ratioW, currentDraggablePanel.ratioH, 0, 0);
+	                      }
+
+	                      int uiPointArray[] = getUiPoint(afterPanel);
+	                      
+	                      if (currentDraggablePanel != null) {
+	                          currentDraggablePanel.setBounds(uiPointArray[0], uiPointArray[1],
+	                                  currentDraggablePanel.getPreferredSize().width,
+	                                  currentDraggablePanel.getPreferredSize().height);
+	                          currentDraggablePanel.revalidate();
+	                      }
+	                   }
+	                }
+	                if (e.getKeyCode() == KeyEvent.VK_RIGHT && isSelected) {
+	                   int lastIndex = clickPanel.size() - 1;
+	                   int beforePanel = 0;
+	                   String panelID = "";
+
+	                   DraggablePanel currentDraggablePanel = null;
+	                   if (!clickPanel.isEmpty()) {
+	                       currentDraggablePanel = clickPanel.get(lastIndex);
+	                   }
+	                   
+	                   for (openFileList item : openFileList) {
+	                       if (item.id.equals(currentDraggablePanel.getName())) {
+	                           beforePanel = item.panelNumber;
+	                           panelID = item.id;
+	                       }
+	                   }
+	                   
+	                   if (1 <= beforePanel && beforePanel <= 3 || 5 <= beforePanel && beforePanel <= 7) {
+	                      int afterPanel = beforePanel + 1;
+	                      
+	                      if (currentDraggablePanel != null) {
+	                          dropSendSizeChangeXML(panelID, afterPanel, currentDraggablePanel.ratioW, currentDraggablePanel.ratioH, 0, 0);
+	                      }
+
+	                      int uiPointArray[] = getUiPoint(afterPanel);
+
+	                      if (currentDraggablePanel != null) {
+	                          currentDraggablePanel.setBounds(uiPointArray[0], uiPointArray[1],
+	                                  currentDraggablePanel.getPreferredSize().width,
+	                                  currentDraggablePanel.getPreferredSize().height);
+	                          currentDraggablePanel.revalidate();
+	                      }
+
+	                   }
+	                }
+	             }
+
+	             @Override
+	             public void keyReleased(KeyEvent e) {
+	                // TODO Auto-generated method stub
+
+	             }
+	          });
+
+	         addMouseWheelListener(new MouseWheelListener() {
+
+	            @Override
+	            public void mouseWheelMoved(MouseWheelEvent e) {
+	               isSelected = true;
+
+	               float fixedRatio = 0.1f; //스크롤 한 번당 변경될 크기 비율
+	               if (e.getWheelRotation() < 0) { //업스크롤 = 확대 시
+	                  ratioW *= (1 + fixedRatio);
+	                  ratioH *= (1 + fixedRatio);
+	               } else if (e.getWheelRotation() > 0) { // 다운스크롤 = 축소 시
+	                  ratioW *= (1 - fixedRatio);
+	                  ratioH *= (1 - fixedRatio);
+	               }
+
+	               updatePanelSize();
+
+	               DraggablePanel c = DraggablePanel.this;
+
+	               int subW = (int) (c.currentWidth > (c.currentWidth * ratioW) // 패널 너비가 변화된 차이를 절대값으로 구함
+	                     ? c.currentWidth - (c.currentWidth * ratioW)
+	                     : (c.currentWidth * ratioW) - c.currentWidth);
+	               int subH = (int) (c.currentHeight > (c.currentHeight * ratioH) // 패널 높이가 변화된 차이를 절대값으로 구함
+	                     ? c.currentHeight - (c.currentHeight * ratioH)
+	                     : (c.currentHeight * ratioH) - c.currentHeight);
+	               dropSendSizeChangeXML(DraggablePanel.this.getName(), panelResult, ratioW, ratioH, subW, subH);
+	            }
+	         });
+	      }
+
+	      private void updatePanelSize() {
+	         int newWidth = (int) (originalWidth * ratioW);
+	         int newHeight = (int) (originalHeight * ratioH);
+
+	         currentWidth = newWidth; // 현재 크기를 업데이트
+	         currentHeight = newHeight;
+
+	         this.setSize(newWidth, newHeight); //draggablePanel에 적용
+	         resizeImage(newWidth, newHeight);
+	         label.setSize(new Dimension(newWidth, newHeight)); //이미지에 적용
+	         createHitBoxes(); //크기 조절점도 다시 갱신
+
+	         this.revalidate();
+	         this.repaint();
+	      }
+
+	      private void createHitBoxes() {
+	         if (!isSelected) {
+	            return;
+	         }
+	         int w = currentWidth;
+	         int h = currentHeight;
+	         hitBoxes.clear();
+	         
+	         // 모서리에 조절점 추가
+	         hitBoxes.add(new Rectangle(0, 0, cornerSize, cornerSize)); // 좌상단
+	         hitBoxes.add(new Rectangle(w - cornerSize, 0, cornerSize, cornerSize)); // 우상단
+	         hitBoxes.add(new Rectangle(0, h - cornerSize, cornerSize, cornerSize)); // 좌하단
+	         hitBoxes.add(new Rectangle(w - cornerSize, h - cornerSize, cornerSize, cornerSize)); // 우하단
+	         // 가장자리 중앙에 조절점 추가
+	         hitBoxes.add(new Rectangle(w / 2 - cornerSize / 2, 0, cornerSize, cornerSize)); // 상단 중앙
+	         hitBoxes.add(new Rectangle(w / 2 - cornerSize / 2, h - cornerSize, cornerSize, cornerSize)); // 하단 중앙
+	         hitBoxes.add(new Rectangle(0, h / 2 - cornerSize / 2, cornerSize, cornerSize)); // 왼쪽 중앙
+	         hitBoxes.add(new Rectangle(w - cornerSize, h / 2 - cornerSize / 2, cornerSize, cornerSize)); // 오른쪽 중앙
+
+	         
+	         if (hitBoxPanel != null) { // hitBoxPanel의 크기와 위치를 업데이트
+	            hitBoxPanel.setHitBoxes(hitBoxes);
+	            hitBoxPanel.setSize(new Dimension(w, h));
+	            hitBoxPanel.revalidate();
+	            hitBoxPanel.repaint();
+	         }
+	      }
+
+	      @Override
+	      protected void paintComponent(Graphics g) { //repaint 요청받을 때마다 그리기 실행
+	         super.paintComponent(g);
+	         Graphics2D g2d = (Graphics2D) g; //graphics 확장 버전의 객체로 캐스팅
+	         if (isSelected) {
+	            g2d.setColor(Color.RED);
+	            for (Rectangle rect : hitBoxes) { //hitBoxes에 저장된 rect 객체들을
+	               g2d.fill(rect); // red로 칠함
+	            }
+	         }
+	      }
+
+	      public void resizeImage(int width, int height) {
+	         Image resizedImg = originalImage.getScaledInstance(width, height, Image.SCALE_SMOOTH);
+	         label.setIcon(new ImageIcon(resizedImg));
+	      }
+
+	      private void resizePanel(Point p) {
+	         int dx = p.x - initialClick.x;
+	         int dy = p.y - initialClick.y;
+	         int newWidth = getWidth();
+	         int newHeight = getHeight();
+	         
+	         // 선택된 조절점에 따라 패널 크기 조절 로직 구현
+	         if (hitBoxIndex == 0) { // 좌상단
+	            newWidth = getWidth() - dx;
+	            newHeight = getHeight() - dy;
+	            setBounds(getX() + dx, getY() + dy, newWidth, newHeight);
+	         }
+	         else if (hitBoxIndex == 1) { // 우상단
+	            newWidth = getWidth() + dx;
+	            newHeight = getHeight() - dy;
+	            setBounds(getX(), getY() + dy, newWidth, newHeight);
+	         }
+	         else if (hitBoxIndex == 2) { // 좌하단
+	            newWidth = getWidth() - dx;
+	            newHeight = getHeight() + dy;
+	            setBounds(getX() + dx, getY(), newWidth, newHeight);
+	         }
+	         else if (hitBoxIndex == 3) { // 우하단
+	            newWidth = getWidth() + dx;
+	            newHeight = getHeight() + dy;
+	            setBounds(getX(), getY(), newWidth, newHeight);
+	         }
+	         else if (hitBoxIndex == 4) { // 상단 중앙
+	            newHeight = getHeight() - dy;
+	            setBounds(getX(), getY() + dy, getWidth(), newHeight); // 변수별로 받아서 x,y
+	         }
+	         else if (hitBoxIndex == 5) { // 하단 중앙
+	            newHeight = getHeight() + dy;
+	            setBounds(getX(), getY(), getWidth(), newHeight);
+	         }
+	         else if (hitBoxIndex == 6) { // 왼쪽 중앙
+	            newWidth = getWidth() - dx;
+	            setBounds(getX() + dx, getY(), newWidth, getHeight());
+	         }
+	         else if (hitBoxIndex == 7) { //오른쪽 중앙
+	            newWidth = getWidth() + dx;
+	            setBounds(getX(), getY(), newWidth, getHeight());
+	         }
+
+	         setBounds(getX(), getY(), newWidth, newHeight);
+	         label.setSize(newWidth, newHeight);
+	         resizeImage(newWidth, newHeight);
+	         currentWidth = newWidth;
+	         currentHeight = newHeight;
+
+	         ratioW = currentWidth / originalWidth; // 변경 전 크기 대비 현재 크기의 비율
+	         ratioH = currentHeight / originalHeight;
+	         createHitBoxes();
+	         hitBoxPanel.setBounds(0, 0, currentWidth, currentHeight);
+
+	         dropSendSizeChangeXML(this.getName(), panelResult, ratioW, ratioH, 0, 0);
+	         revalidate();
+	      }
+
+	      private void dropSendSizeChangeXML(String id, int panelNumber, float currentWidthRatio,
+	            float currentHeightRatio, int subW, int subH) {
+	         try {
+
+	            int[] pointArray = getXYPoint(panelNumber);
+
+	            String xmlString = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\" ?>";
+	            xmlString += "<Commands>";
+	            xmlString += "<command type=\"change\">";
+	            xmlString += "<id>" + id + "</id>";
+
+	            if (panelNumber == 3) {
+	               xmlString += "<x>" + (pointArray[0] * currentWidthRatio) + "</x>";
+	               xmlString += "<y>" + (2 * pointArray[1] - (pointArray[1] * currentHeightRatio)) + "</y>";
+	            }
+	            if (panelNumber == 2) {
+	               xmlString += "<x>" + (pointArray[0] * (2 - currentWidthRatio)) + "</x>";
+	               xmlString += "<y>" + (2 * pointArray[1] - (pointArray[1] * currentHeightRatio)) + "</y>";
+	            }
+	            if (panelNumber == 6) {
+	               System.out.println(currentWidthRatio);
+	               xmlString += "<x>" + (pointArray[0] * (2 - currentWidthRatio)) + "</x>";
+	               System.out.println(xmlString);
+	               xmlString += "<y>" + ((pointArray[1] * currentHeightRatio)) + "</y>";
+	            }
+	            if (panelNumber == 7) {
+	               System.out.println(currentWidthRatio);
+	               xmlString += "<x>" + (pointArray[0] * currentWidthRatio) + "</x>";
+	               System.out.println(xmlString);
+	               xmlString += "<y>" + (pointArray[1] * currentHeightRatio) + "</y>";
+	            }
+	            if (panelNumber == 1) {
+	               System.out.println(currentWidthRatio);
+	               xmlString += "<x>" + (pointArray[0] + (pointArray[0] * (currentWidthRatio - 1) * -1 / 3)) + "</x>";
+	               System.out.println(xmlString);
+	               xmlString += "<y>" + (2 * pointArray[1] - (pointArray[1] * currentHeightRatio)) + "</y>";
+	            }
+
+	            if (panelNumber == 5) {
+
+	               xmlString += "<x>" + (pointArray[0] + (pointArray[0] * (currentWidthRatio - 1) * -1 / 3)) + "</x>";
+	               xmlString += "<y>" + ((pointArray[1] * currentHeightRatio)) + "</y>";
+	            }
+	            if (panelNumber == 4) {
+
+	               xmlString += "<x>" + (pointArray[0] - (pointArray[0] * (currentWidthRatio - 1) * -1 / 3)) + "</x>";
+	               System.out.println(xmlString);
+	               xmlString += "<y>" + (2 * pointArray[1] - (pointArray[1] * currentHeightRatio)) + "</y>";
+
+	            }
+	            if (panelNumber == 8) {
+
+	               xmlString += "<x>" + (pointArray[0] - (pointArray[0] * (currentWidthRatio - 1) * -1 / 3)) + "</x>";
+	               xmlString += "<y>" + ((pointArray[1] * currentHeightRatio)) + "</y>";
+
+	            }
+
+	            xmlString += "<boundsfill>1</boundsfill>";
+	            xmlString += "<boundsh>" + (1080 * currentHeightRatio) + "</boundsh>";
+	            xmlString += "<boundsw>" + (1927 * currentWidthRatio) + "</boundsw>";
+	            xmlString += "</command>";
+	            xmlString += "</Commands>";
+
+	            URL requestURL = new URL(baseURL + "/xmlcommand");
+	            HttpURLConnection requestConnection = (HttpURLConnection) requestURL.openConnection();
+	            requestConnection.setRequestMethod("POST");
+	            requestConnection.setDoOutput(true);
+	            OutputStream reqStream = requestConnection.getOutputStream();
+	            reqStream.write(xmlString.getBytes("UTF8"));
+
+	            if (requestConnection.getResponseCode() == 200) { // http 요청이 성공적으로 수행됐을 때
+	               for (openFileList item : openFileList) {
+	                  if (item.id.equals(id)) {
+	                     item.panelNumber = panelNumber; // 컨텐츠가 새로운 패널로 옮겨짐
+	                  }
+	               }
+
+	               SwingUtilities.invokeLater(new Runnable() { //Swing 컴포넌트의 상태를 변경할 때
+	                  public void run() {
+
+	                     DraggablePanel selectedPanel = null;
+	                     for (DraggablePanel panel : dragPanelOpenList) { 
+	                        if (panel.getName().equals(id)) { //해당 리스트와 id가 일치하는 패널을 찾아서
+	                           selectedPanel = panel;
+	                        }
+	                     }
+
+	                     int uiPointArray[] = getUiPoint(panelNumber); //panelNumber에 해당하는 UI 위치 계산
+
+	                     selectedPanel.setBounds(uiPointArray[0], uiPointArray[1],
+	                           (int) (selectedPanel.getPreferredSize().width * currentWidthRatio),
+	                           (int) (selectedPanel.getPreferredSize().height * currentHeightRatio)); //패널의 위치와 크기 설정
+	                     selectedPanel.revalidate();
+	                  }
+	               });
+	            } else
+	               System.out.println(
+	                     "Failed to drag change " + id + " response: " + requestConnection.getResponseCode());
+	         } catch (Exception e) {
+	            System.out.println("Failed to drag open error: " + e);
+	         }
+	      }
+
+	   }
 
 	private void sendVideoMute(String id) {
 		try {
