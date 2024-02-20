@@ -105,7 +105,7 @@ public class Controller_main extends JFrame {
 
 	public Controller_main() {
 		// IP, PORT, Contents 경로를 입력할 수 있는 Frame과 Panel 만들기
-		inputFrame = new JFrame("IP/PORT 입력창");
+		inputFrame = new JFrame("IP/PORT/CONTENTS 입력창");
 		inputFrame.setSize(500, 300);
 		inputFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		inputFrame.setLocationRelativeTo(null);
@@ -1490,8 +1490,8 @@ public class Controller_main extends JFrame {
 					break;
 				}
 			}
-
-			String openDir = controllerFileList.get(fileIndexSearchResult).replace("\\\\192.168.1.128\\contents\\", "");
+//			String openDir = controllerFileList.get(fileIndexSearchResult).replace("\\\\192.168.1.128\\contents\\", "");
+			String openDir = controllerFileList.get(fileIndexSearchResult).replace(rootPath + '\\', "");
 
 			int[] pointArray = getXYPoint(panelNumber);
 
@@ -1574,7 +1574,7 @@ public class Controller_main extends JFrame {
 			result[1] = 262;
 		} else if (5 <= panelNumber && panelNumber <= 8) {
 			result[0] = 290 + 204 * (panelNumber - 5);
-			result[1] = 382;
+			result[1] = 381;
 		}
 		return result;
 
