@@ -457,6 +457,7 @@ public class Controller_main extends JFrame {
 		return rightPanel;
 	}
 
+	// 마우스 X, Y 좌표로 비디오 월 번호 반환
 	private int getPanelNumber(int x, int y) {
 		if (29 <= x && x <= 230) {
 			if (262 <= y && y <= 381) {
@@ -486,29 +487,39 @@ public class Controller_main extends JFrame {
 		return 0;
 	}
 
+	// 드래그 자체를 인식하는 이벤트
 	private class FileDragGestureListener implements DragGestureListener {
 		@Override
 		public void dragGestureRecognized(DragGestureEvent dge) {
 			StringSelection transferable = null;
+			// 파일을 눌렀을 때 선택한 파일에 대한 경로 반환
 			TreePath path = tree.getSelectionPath();
+
+			// 선택한 것이 파일이 아닌 경우
 			if (path != null) {
 				transferable = new StringSelection(path.getLastPathComponent().toString());
-			} else if (path == null) {
+			}
+			// 선택한 것이 파일인 경우
+			else if (path == null) {
 				Component draggedComponent = dge.getComponent();
 
+				// 선택한 것이 DraggablePanel인 경우
 				if (draggedComponent instanceof DraggablePanel) {
 					DraggablePanel draggablePanel = (DraggablePanel) draggedComponent;
+					// 선택한 DraggablePanel의 id값 구하기
 					String idValue = draggablePanel.getName();
-					System.out.println("id : " + idValue);
 
+					// id값을 drop 이벤트가 인식할 수 있도록 StringSelection으로 변환
 					transferable = new StringSelection(idValue);
 				}
 			}
+			// drop 이벤트에게 transferable 데이터를 보냄
 			dge.startDrag(null, transferable, new FileDragSourceListener());
 		}
 
 	}
 
+	// 드래그 하는 동안을 인식하는 이벤트
 	private class FileDragSourceListener implements DragSourceListener {
 		@Override
 		public void dragEnter(DragSourceDragEvent dsde) {
@@ -518,12 +529,18 @@ public class Controller_main extends JFrame {
 		@Override
 		public void dragOver(DragSourceDragEvent dsde) {
 
+			// 드래그를 한 객체를 불러오기
 			Component draggedComponent = dsde.getDragSourceContext().getComponent();
 			DraggablePanel selectPanel = null;
 
+			// 드래그를 한 객체가 DraggablePanel인 경우
 			if (draggedComponent instanceof DraggablePanel) {
 				DraggablePanel draggablePanel = (DraggablePanel) draggedComponent;
+
+				// DraggablePanel의 id 값을 구함
 				String idValue = draggablePanel.getName();
+
+				// 비디오 월에 열린 DraggablePanel 중에 그 id를 가진 객체가 있는지 확인
 				for (DraggablePanel panel : dragPanelOpenList) {
 					if (panel.getName().equals(idValue)) {
 						selectPanel = panel;
@@ -531,10 +548,14 @@ public class Controller_main extends JFrame {
 					}
 				}
 			}
+			// 검사 후 일치한 객체가 있는 경우
 			if (selectPanel != null) {
+				// 화면의 좌표를 가지고 옴
 				Point locationOnScreen = frame.getLocationOnScreen();
+				// 화면의 좌표 중 x, y 값을 가지고 옴
 				int x = (int) locationOnScreen.getX();
 				int y = (int) locationOnScreen.getY();
+				// 화면에 일치한 객체를 각 좌표에 맞게 띄움
 				selectPanel.setBounds(dsde.getX() - x - 100, dsde.getY() - y - 100, selectPanel.currentWidth,
 						selectPanel.currentHeight);
 			}
@@ -573,18 +594,23 @@ public class Controller_main extends JFrame {
 		public void dragExit(DropTargetEvent dte) {
 		}
 
+		// drop 하는 이벤트
 		@Override
 		public void drop(DropTargetDropEvent dtde) {
 			try {
+				// drag할 때 보냈던 데이터 변환
 				Transferable transferable = dtde.getTransferable();
 				DataFlavor[] flavors = transferable.getTransferDataFlavors();
 
 				if (flavors.length > 0) {
 
+					// drag 할 때 보냈던 데이터 문자열로 변환
 					Object data = transferable.getTransferData(flavors[0]);
 					String name = data.toString();
 
 					DraggablePanel draggablePanel = null; // dropSendSizeChangeXML을 사용하기 위해 필요
+
+					// 비디오 월에 열린 DraggablePanel 중 해당 데이터를 가진 객체를 검사
 					for (DraggablePanel panel : dragPanelOpenList) {
 						if (panel.getName().equals(name)) {
 							draggablePanel = panel;
@@ -603,18 +629,27 @@ public class Controller_main extends JFrame {
 						}
 					}
 
+					// drop 한 위치값의 x, y 좌표 가지고 오기
 					Point point = dtde.getLocation();
 					int pointX = (int) point.getX();
 					int pointY = (int) point.getY();
+
+					// x, y 좌표로 비디오 월의 번호 구하기
 					panelResult = getPanelNumber(pointX, pointY);
 
+					// 비디오 월에 이미 열린 객체 인 경우
 					if (openedResult && draggablePanel != null) {
+						// 객체 위치 변경
 						draggablePanel.dropSendSizeChangeXML(name, panelResult, draggablePanel.ratioW,
 								draggablePanel.ratioH, 0, 0);
 
-					} else if (!openedResult) {
+					}
+					// 비디오 월에 아직 열리지 않은 경우
+					else if (!openedResult) {
+
 						boolean fileSearchResult = false;
 						int fileIndexSearchResult = -1;
+						// 전체 파일에서 열고 싶은 파일 찾기
 						for (int idx = 0; idx < controllerFileList.size(); idx++) {
 							fileSearchResult = controllerFileList.get(idx).contains(name);
 							if (fileSearchResult) {
@@ -622,11 +657,11 @@ public class Controller_main extends JFrame {
 								break;
 							}
 						}
-
+						// 전체 파일에 열고 싶은 파일이 있는 경우
 						if (fileSearchResult) {
-
+							// 파일 경로 받아오기
 							String filePath = controllerFileList.get(fileIndexSearchResult);
-
+							// 파일 열기
 							dropSendOpenXML(name, panelResult, filePath);
 
 							((DefaultTreeModel) tree.getModel()).reload();
@@ -848,7 +883,7 @@ public class Controller_main extends JFrame {
 						}
 					}
 
-					// 클릭한 상태로 아래 방향키를 눌렀을 때
+					// 클릭한 후 아래 방향키를 눌렀을 때
 					if (e.getKeyCode() == KeyEvent.VK_DOWN && isSelected) {
 
 						int lastIndex = clickPanel.size() - 1;
@@ -868,16 +903,19 @@ public class Controller_main extends JFrame {
 								panelID = item.id;
 							}
 						}
-
+						// 비디오 월 번호가 1 이상 4 이하 일 때
 						if (1 <= beforePanel && beforePanel <= 4) {
+							// 이동 후 비디오 월 번호 계산
 							int afterPanel = beforePanel + 4;
+							// 이동에 따른 객체 change 명령 보내기
 							if (currentDraggablePanel != null) {
 								dropSendSizeChangeXML(panelID, afterPanel, currentDraggablePanel.ratioW,
 										currentDraggablePanel.ratioH, 0, 0);
 							}
-
+							// 이동 후에 대한 통합 컨트롤러 비디오 월 좌표 구하기
 							int uiPointArray[] = getUiPoint(afterPanel);
 
+							// UI상 객체의 좌표를 변경해 객체 이동
 							if (currentDraggablePanel != null) {
 								currentDraggablePanel.setBounds(uiPointArray[0], uiPointArray[1],
 										currentDraggablePanel.getPreferredSize().width,
@@ -888,33 +926,38 @@ public class Controller_main extends JFrame {
 						}
 
 					}
+
+					// 클릭한 후 위 방향키를 눌렀을 때
 					if (e.getKeyCode() == KeyEvent.VK_UP && isSelected) {
 						int lastIndex = clickPanel.size() - 1;
 						int beforePanel = 0;
 						String panelID = "";
 
 						DraggablePanel currentDraggablePanel = null;
+						// 선택한 객체가 있을 때
 						if (!clickPanel.isEmpty()) {
+							// 선택한 마지막 객체 가지고 오기
 							currentDraggablePanel = clickPanel.get(lastIndex);
 						}
-
+						// 열린 파일 중 선택한 객체를 검사
 						for (openFileList item : openFileList) {
 							if (item.id.equals(currentDraggablePanel.getName())) {
 								beforePanel = item.panelNumber;
 								panelID = item.id;
 							}
 						}
-
+						// 비디오 월의 번호가 5 이상 8 이하 일 때
 						if (5 <= beforePanel && beforePanel <= 8) {
+							// 이동 후 비디오 월 번호 계산
 							int afterPanel = beforePanel - 4;
-
+							// 이동에 따른 객체 change 명령 보내기
 							if (currentDraggablePanel != null) {
 								dropSendSizeChangeXML(panelID, afterPanel, currentDraggablePanel.ratioW,
 										currentDraggablePanel.ratioH, 0, 0);
 							}
-
+							// 이동 후에 대한 통합 컨트롤러 비디오 월 좌표 구하기
 							int uiPointArray[] = getUiPoint(afterPanel);
-
+							// UI상 객체의 좌표를 변경해 객체 이동
 							if (currentDraggablePanel != null) {
 								currentDraggablePanel.setBounds(uiPointArray[0], uiPointArray[1],
 										currentDraggablePanel.getPreferredSize().width,
@@ -923,18 +966,20 @@ public class Controller_main extends JFrame {
 							}
 						}
 					}
-					// 숫자 바꾸기
 
-					if (e.getKeyCode() == KeyEvent.VK_LEFT && isSelected) {// 빈주석
+					if (e.getKeyCode() == KeyEvent.VK_LEFT && isSelected) {
 						int lastIndex = clickPanel.size() - 1;
 						int beforePanel = 0;
 						String panelID = "";
 
 						DraggablePanel currentDraggablePanel = null;
+						// 선택한 객체가 있을 때
 						if (!clickPanel.isEmpty()) {
+							// 선택한 마지막 객체 가지고 오기
 							currentDraggablePanel = clickPanel.get(lastIndex);
 						}
 
+						// 열린 파일 중 선택한 객체를 검사
 						for (openFileList item : openFileList) {
 							if (item.id.equals(currentDraggablePanel.getName())) {
 								beforePanel = item.panelNumber;
@@ -943,15 +988,16 @@ public class Controller_main extends JFrame {
 						}
 
 						if (2 <= beforePanel && beforePanel <= 4 || 6 <= beforePanel && beforePanel <= 8) {
+							// 이동 후 비디오 월 번호 계산
 							int afterPanel = beforePanel - 1;
-
+							// 이동에 따른 객체 change 명령 보내기
 							if (currentDraggablePanel != null) {
 								dropSendSizeChangeXML(panelID, afterPanel, currentDraggablePanel.ratioW,
 										currentDraggablePanel.ratioH, 0, 0);
 							}
-
+							// 이동 후에 대한 통합 컨트롤러 비디오 월 좌표 구하기
 							int uiPointArray[] = getUiPoint(afterPanel);
-
+							// UI상 객체의 좌표를 변경해 객체 이동
 							if (currentDraggablePanel != null) {
 								currentDraggablePanel.setBounds(uiPointArray[0], uiPointArray[1],
 										currentDraggablePanel.getPreferredSize().width,
@@ -960,16 +1006,20 @@ public class Controller_main extends JFrame {
 							}
 						}
 					}
+
 					if (e.getKeyCode() == KeyEvent.VK_RIGHT && isSelected) {
 						int lastIndex = clickPanel.size() - 1;
 						int beforePanel = 0;
 						String panelID = "";
 
 						DraggablePanel currentDraggablePanel = null;
+						// 선택한 객체가 있을 때
 						if (!clickPanel.isEmpty()) {
+							// 선택한 마지막 객체 가지고 오기
 							currentDraggablePanel = clickPanel.get(lastIndex);
 						}
 
+						// 열린 파일 중 선택한 객체를 검사
 						for (openFileList item : openFileList) {
 							if (item.id.equals(currentDraggablePanel.getName())) {
 								beforePanel = item.panelNumber;
@@ -978,15 +1028,16 @@ public class Controller_main extends JFrame {
 						}
 
 						if (1 <= beforePanel && beforePanel <= 3 || 5 <= beforePanel && beforePanel <= 7) {
+							// 이동 후 비디오 월 번호 계산
 							int afterPanel = beforePanel + 1;
-
+							// 이동에 따른 객체 change 명령 보내기
 							if (currentDraggablePanel != null) {
 								dropSendSizeChangeXML(panelID, afterPanel, currentDraggablePanel.ratioW,
 										currentDraggablePanel.ratioH, 0, 0);
 							}
-
+							// 이동 후에 대한 통합 컨트롤러 비디오 월 좌표 구하기
 							int uiPointArray[] = getUiPoint(afterPanel);
-
+							// UI상 객체의 좌표를 변경해 객체 이동
 							if (currentDraggablePanel != null) {
 								currentDraggablePanel.setBounds(uiPointArray[0], uiPointArray[1],
 										currentDraggablePanel.getPreferredSize().width,
@@ -1031,17 +1082,8 @@ public class Controller_main extends JFrame {
 					int subH = (int) (c.currentHeight > (c.currentHeight * ratioH)
 							? c.currentHeight - (c.currentHeight * ratioH) // 패널 높이가 변화된 차이를 절대값으로 계산하기
 							: (c.currentHeight * ratioH) - c.currentHeight);
-					dropSendSizeChangeXML(DraggablePanel.this.getName(), panelResult, ratioW, ratioH, subW, subH); // subW,
-																													// subH:
-																													// 크기
-																													// 조절된
-																													// 패널의
-																													// 위치와
-																													// 크기를
-																													// 업데이트할
-																													// 때
-																													// 필요한
-																													// 정보
+					// subW, subH: 크기 조절된 패널의 위치와 크기를 업데이트 할 때 필요한 정보
+					dropSendSizeChangeXML(DraggablePanel.this.getName(), panelResult, ratioW, ratioH, subW, subH);
 				}
 			});
 		}
@@ -1291,10 +1333,9 @@ public class Controller_main extends JFrame {
 						"Warning", JOptionPane.INFORMATION_MESSAGE);
 		} catch (Exception e) {
 			if (e != null && e.toString().contains("Connection refused")) {
-				JOptionPane.showMessageDialog(frame, "연결을 거부했습니다. 컨트롤러가 켜져있는지 확인하세요\n" + e, "Warning",
-						JOptionPane.INFORMATION_MESSAGE);
+				JOptionPane.showMessageDialog(frame, "연결을 거부했습니다.\n" + e, "Warning", JOptionPane.INFORMATION_MESSAGE);
 			} else if (e != null && e.toString().contains("Connection timed out")) {
-				JOptionPane.showMessageDialog(frame, "연결 시간이 초과되었습니다. IP와 PORT 번호가 맞는지 확인하세요\n" + e, "Warning",
+				JOptionPane.showMessageDialog(frame, "연결 시간이 초과되었습니다.\n" + e, "Warning",
 						JOptionPane.INFORMATION_MESSAGE);
 			} else if (e != null && e.toString().contains("Connection Exception")) {
 				JOptionPane.showMessageDialog(frame, "연결하는데 오류가 발생했습니다\nError : " + e, "Warning",
@@ -1332,10 +1373,9 @@ public class Controller_main extends JFrame {
 						"Warning", JOptionPane.INFORMATION_MESSAGE);
 		} catch (Exception e) {
 			if (e != null && e.toString().contains("Connection refused")) {
-				JOptionPane.showMessageDialog(frame, "연결을 거부했습니다. 컨트롤러가 켜져있는지 확인하세요\n" + e, "Warning",
-						JOptionPane.INFORMATION_MESSAGE);
+				JOptionPane.showMessageDialog(frame, "연결을 거부했습니다.\n" + e, "Warning", JOptionPane.INFORMATION_MESSAGE);
 			} else if (e != null && e.toString().contains("Connection timed out")) {
-				JOptionPane.showMessageDialog(frame, "연결 시간이 초과되었습니다. IP와 PORT 번호가 맞는지 확인하세요\n" + e, "Warning",
+				JOptionPane.showMessageDialog(frame, "연결 시간이 초과되었습니다.\n" + e, "Warning",
 						JOptionPane.INFORMATION_MESSAGE);
 			} else if (e != null && e.toString().contains("Connection Exception")) {
 				JOptionPane.showMessageDialog(frame, "연결하는데 오류가 발생했습니다\nError : " + e, "Warning",
@@ -1370,10 +1410,9 @@ public class Controller_main extends JFrame {
 						"Warning", JOptionPane.INFORMATION_MESSAGE);
 		} catch (Exception e) {
 			if (e != null && e.toString().contains("Connection refused")) {
-				JOptionPane.showMessageDialog(frame, "연결을 거부했습니다. 컨트롤러가 켜져있는지 확인하세요\n" + e, "Warning",
-						JOptionPane.INFORMATION_MESSAGE);
+				JOptionPane.showMessageDialog(frame, "연결을 거부했습니다.\n" + e, "Warning", JOptionPane.INFORMATION_MESSAGE);
 			} else if (e != null && e.toString().contains("Connection timed out")) {
-				JOptionPane.showMessageDialog(frame, "연결 시간이 초과되었습니다. IP와 PORT 번호가 맞는지 확인하세요\n" + e, "Warning",
+				JOptionPane.showMessageDialog(frame, "연결 시간이 초과되었습니다.\n" + e, "Warning",
 						JOptionPane.INFORMATION_MESSAGE);
 			} else if (e != null && e.toString().contains("Connection Exception")) {
 				JOptionPane.showMessageDialog(frame, "연결하는데 오류가 발생했습니다\nError : " + e, "Warning",
@@ -1442,10 +1481,9 @@ public class Controller_main extends JFrame {
 						"Warning", JOptionPane.INFORMATION_MESSAGE);
 		} catch (Exception e) {
 			if (e != null && e.toString().contains("Connection refused")) {
-				JOptionPane.showMessageDialog(frame, "연결을 거부했습니다. 컨트롤러가 켜져있는지 확인하세요\n" + e, "Warning",
-						JOptionPane.INFORMATION_MESSAGE);
+				JOptionPane.showMessageDialog(frame, "연결을 거부했습니다.\n" + e, "Warning", JOptionPane.INFORMATION_MESSAGE);
 			} else if (e != null && e.toString().contains("Connection timed out")) {
-				JOptionPane.showMessageDialog(frame, "연결 시간이 초과되었습니다. IP와 PORT 번호가 맞는지 확인하세요\n" + e, "Warning",
+				JOptionPane.showMessageDialog(frame, "연결 시간이 초과되었습니다.\n" + e, "Warning",
 						JOptionPane.INFORMATION_MESSAGE);
 			} else if (e != null && e.toString().contains("Connection Exception")) {
 				JOptionPane.showMessageDialog(frame, "연결하는데 오류가 발생했습니다\nError : " + e, "Warning",
@@ -1529,10 +1567,9 @@ public class Controller_main extends JFrame {
 			}
 		} catch (Exception e) {
 			if (e != null && e.toString().contains("Connection refused")) {
-				JOptionPane.showMessageDialog(frame, "연결을 거부했습니다. 컨트롤러가 켜져있는지 확인하세요\n" + e, "Warning",
-						JOptionPane.INFORMATION_MESSAGE);
+				JOptionPane.showMessageDialog(frame, "연결을 거부했습니다.\n" + e, "Warning", JOptionPane.INFORMATION_MESSAGE);
 			} else if (e != null && e.toString().contains("Connection timed out")) {
-				JOptionPane.showMessageDialog(frame, "연결 시간이 초과되었습니다. IP와 PORT 번호가 맞는지 확인하세요\n" + e, "Warning",
+				JOptionPane.showMessageDialog(frame, "연결 시간이 초과되었습니다.\n" + e, "Warning",
 						JOptionPane.INFORMATION_MESSAGE);
 			} else if (e != null && e.toString().contains("Connection Exception")) {
 				JOptionPane.showMessageDialog(frame, "연결하는데 오류가 발생했습니다\nError : " + e, "Warning",
