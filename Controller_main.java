@@ -1309,8 +1309,10 @@ public class Controller_main extends JFrame {
 
 	}
 
+	// 비디오 객체의 소리 끄는 함수
 	private void sendVideoMute(String id) {
 		try {
+			// 소리 끄는 명령을 보내는 XML 문자열
 			String xmlString = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\" ?>";
 			xmlString += "<Commands>";
 			xmlString += "<command type=\"change\">";
@@ -1319,6 +1321,7 @@ public class Controller_main extends JFrame {
 			xmlString += "</command>";
 			xmlString += "</Commands>";
 
+			// baseURL로 통신 보내기
 			URL requestURL = new URL(baseURL + "/xmlcommand");
 			HttpURLConnection requestConnection = (HttpURLConnection) requestURL.openConnection();
 			requestConnection.setRequestMethod("POST");
@@ -1326,12 +1329,17 @@ public class Controller_main extends JFrame {
 			OutputStream reqStream = requestConnection.getOutputStream();
 			reqStream.write(xmlString.getBytes("UTF8"));
 
+			// 통신 성공 (200)인 경우
 			if (requestConnection.getResponseCode() == 200) {
 				System.out.println("소리 끄기 성공 / 응답코드 : " + requestConnection.getResponseCode());
-			} else
+			}
+			// 통신 실패 (404, 403...)인 경우
+			else
 				JOptionPane.showMessageDialog(frame, "음소거에 실패하였습니다\n응답코드: " + requestConnection.getResponseCode(),
 						"Warning", JOptionPane.INFORMATION_MESSAGE);
-		} catch (Exception e) {
+		}
+		// 예외 사항에 대한 경우
+		catch (Exception e) {
 			if (e != null && e.toString().contains("Connection refused")) {
 				JOptionPane.showMessageDialog(frame, "연결을 거부했습니다.\n" + e, "Warning", JOptionPane.INFORMATION_MESSAGE);
 			} else if (e != null && e.toString().contains("Connection timed out")) {
@@ -1347,9 +1355,10 @@ public class Controller_main extends JFrame {
 		}
 	}
 
+	// 비디오 객체에 대한 볼륨 조절
 	private void sendVideoVolume(String id, int volume) {
-
 		try {
+			// 볼륨 조절에 대한 XML 문자열
 			String xmlString = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\" ?>";
 			xmlString += "<Commands>";
 			xmlString += "<command type=\"change\">";
@@ -1357,21 +1366,25 @@ public class Controller_main extends JFrame {
 			xmlString += "<volume>" + volume + "</volume>";
 			xmlString += "</command>";
 			xmlString += "</Commands>";
-
+			// baseURL로 통신 보내기
 			URL requestURL = new URL(baseURL + "/xmlcommand");
 			HttpURLConnection requestConnection = (HttpURLConnection) requestURL.openConnection();
 			requestConnection.setRequestMethod("POST");
 			requestConnection.setDoOutput(true);
 			OutputStream reqStream = requestConnection.getOutputStream();
 			reqStream.write(xmlString.getBytes("UTF8"));
-
+			// 통신 성공 (200)인 경우
 			if (requestConnection.getResponseCode() == 200) {
 				System.out.println(
 						"Success to adjust Volume" + id + " response : " + requestConnection.getResponseCode());
-			} else
+			}
+			// 통신 실패 (404, 403...)인 경우
+			else
 				JOptionPane.showMessageDialog(frame, "소리 조절에 실패하였습니다\n응답코드: " + requestConnection.getResponseCode(),
 						"Warning", JOptionPane.INFORMATION_MESSAGE);
-		} catch (Exception e) {
+		}
+		// 예외 사항인 경우
+		catch (Exception e) {
 			if (e != null && e.toString().contains("Connection refused")) {
 				JOptionPane.showMessageDialog(frame, "연결을 거부했습니다.\n" + e, "Warning", JOptionPane.INFORMATION_MESSAGE);
 			} else if (e != null && e.toString().contains("Connection timed out")) {
@@ -1387,28 +1400,34 @@ public class Controller_main extends JFrame {
 		}
 	}
 
+	// 객체 삭제하는 함수
 	private void sendDeleteXML(String id) {
 		try {
+			// 삭제 명령에 대한 XML
 			String xmlString = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\" ?>";
 			xmlString += "<Commands>";
 			xmlString += "<command type=\"close\">";
 			xmlString += "<id>" + id + "</id>";
 			xmlString += "</command>";
 			xmlString += "</Commands>";
-
+			// baseURL로 통신 보내기
 			URL requestURL = new URL(baseURL + "/xmlcommand");
 			HttpURLConnection requestConnection = (HttpURLConnection) requestURL.openConnection();
 			requestConnection.setRequestMethod("POST");
 			requestConnection.setDoOutput(true);
 			OutputStream reqStream = requestConnection.getOutputStream();
 			reqStream.write(xmlString.getBytes("UTF8"));
-
+			// 통신 성공 (200)인 경우
 			if (requestConnection.getResponseCode() == 200) {
 				System.out.println("Success to close " + id + " response : " + requestConnection.getResponseCode());
-			} else
+			}
+			// 통신 실패 (404, 403...)인 경우
+			else
 				JOptionPane.showMessageDialog(frame, "컨텐츠 삭제에 실패하였습니다\n응답코드 : " + requestConnection.getResponseCode(),
 						"Warning", JOptionPane.INFORMATION_MESSAGE);
-		} catch (Exception e) {
+		}
+		// 예외 사항인 경우
+		catch (Exception e) {
 			if (e != null && e.toString().contains("Connection refused")) {
 				JOptionPane.showMessageDialog(frame, "연결을 거부했습니다.\n" + e, "Warning", JOptionPane.INFORMATION_MESSAGE);
 			} else if (e != null && e.toString().contains("Connection timed out")) {
