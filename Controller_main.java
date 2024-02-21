@@ -1444,11 +1444,14 @@ public class Controller_main extends JFrame {
 
 	}
 
+	// 비디오 월에 따라 객체의 위치를 변경하는 함수
 	private void dropSendChangeXML(String id, int panelNumber) {
 		try {
 
+			// 하이퍼월 컨트롤러 좌표 구하기
 			int[] pointArray = getXYPoint(panelNumber);
 
+			// change 명령에 대한 XML
 			String xmlString = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\" ?>";
 			xmlString += "<Commands>";
 			xmlString += "<command type=\"change\">";
@@ -1460,18 +1463,19 @@ public class Controller_main extends JFrame {
 			xmlString += "<boundsw>1927</boundsw>";
 			xmlString += "</command>";
 			xmlString += "</Commands>";
-
+			// baseURL로 통신 보내기
 			URL requestURL = new URL(baseURL + "/xmlcommand");
 			HttpURLConnection requestConnection = (HttpURLConnection) requestURL.openConnection();
 			requestConnection.setRequestMethod("POST");
 			requestConnection.setDoOutput(true);
 			OutputStream reqStream = requestConnection.getOutputStream();
 			reqStream.write(xmlString.getBytes("UTF8"));
-
+			// 통신 성공인 경우
 			if (requestConnection.getResponseCode() == 200) {
 				System.out
 						.println("Success to drag change " + id + " response : " + requestConnection.getResponseCode());
 
+				// 열린 파일 중 해당 id값을 가진 파일 찾기
 				for (openFileList item : openFileList) {
 					if (item.id.equals(id)) {
 						item.panelNumber = panelNumber;
@@ -1482,23 +1486,30 @@ public class Controller_main extends JFrame {
 					public void run() {
 
 						DraggablePanel selectedPanel = null;
+						// 열린 DraggablePanel 중 해당 id를 가진 DraggablePanel 찾기
 						for (DraggablePanel panel : dragPanelOpenList) {
 							if (panel.getName().equals(id)) {
 								selectedPanel = panel;
 							}
 						}
 
+						// 비디오 월 번호에 따른 통합 컨트롤러 좌표 구하기
 						int uiPointArray[] = getUiPoint(panelNumber);
 
+						// DraggablePanel 위치 변경
 						selectedPanel.setBounds(uiPointArray[0], uiPointArray[1], selectedPanel.currentWidth,
 								selectedPanel.currentHeight);
 						selectedPanel.revalidate();
 					}
 				});
-			} else
+			}
+			// 통신에 실패한 경우
+			else
 				JOptionPane.showMessageDialog(frame, "위치변경에 실패하였습니다\n응답코드 : " + requestConnection.getResponseCode(),
 						"Warning", JOptionPane.INFORMATION_MESSAGE);
-		} catch (Exception e) {
+		}
+		// 예외가 발생한 경우
+		catch (Exception e) {
 			if (e != null && e.toString().contains("Connection refused")) {
 				JOptionPane.showMessageDialog(frame, "연결을 거부했습니다.\n" + e, "Warning", JOptionPane.INFORMATION_MESSAGE);
 			} else if (e != null && e.toString().contains("Connection timed out")) {
@@ -1514,10 +1525,14 @@ public class Controller_main extends JFrame {
 		}
 	}
 
+	// drop해서 객체를 여는 함수
 	private void dropSendOpenXML(String name, int panelNumber, String filePath) {
 		try {
+
 			boolean fileSearchResult = false;
 			int fileIndexSearchResult = 0;
+
+			// 전체 파일에서 열고자 하는 파일 찾기
 			for (int idx = 0; idx < controllerFileList.size(); idx++) {
 				fileSearchResult = controllerFileList.get(idx).contains(name);
 				if (fileSearchResult) {
@@ -1525,15 +1540,17 @@ public class Controller_main extends JFrame {
 					break;
 				}
 			}
-//			String openDir = controllerFileList.get(fileIndexSearchResult).replace("\\\\192.168.1.128\\contents\\", "");
+			// 앞 경로를 제외한 파일명만 구하기
 			String openDir = controllerFileList.get(fileIndexSearchResult).replace(rootPath + '\\', "");
 
+			// 비디오 월 번호로 하이퍼월 컨트롤러 좌표 구하기
 			int[] pointArray = getXYPoint(panelNumber);
 
+			// 객체 id 값 생성
 			String id = Integer.toString(panelNumber);
 
 			if (fileSearchResult) {
-
+				// 파일을 여는 XML 생성
 				String xmlString = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\" ?>";
 				xmlString += "<Commands>";
 				xmlString += "<command type=\"open\">";
@@ -1546,16 +1563,16 @@ public class Controller_main extends JFrame {
 				xmlString += "<boundsw>1927</boundsw>";
 				xmlString += "</command>";
 				xmlString += "</Commands>";
-
+				// baseURL로 통신
 				URL requestURL = new URL(baseURL + "/xmlcommand");
 				HttpURLConnection requestConnection = (HttpURLConnection) requestURL.openConnection();
 				requestConnection.setRequestMethod("POST");
 				requestConnection.setDoOutput(true);
 				OutputStream reqStream = requestConnection.getOutputStream();
 				reqStream.write(xmlString.getBytes("UTF8"));
-
+				// 응답코드 받기
 				int code = requestConnection.getResponseCode();
-
+				// 통신 성공한 경우
 				if (code == 200) {
 					System.out.println(
 							"Success to drag open " + openDir + " response : " + requestConnection.getResponseCode());
@@ -1565,26 +1582,36 @@ public class Controller_main extends JFrame {
 					SwingUtilities.invokeLater(new Runnable() {
 						public void run() {
 
+							// DraggablePanel 객체 생성
 							DraggablePanel draggablePanel = new DraggablePanel(filePath);
+							// 배경 투명으로 설정
 							draggablePanel.setOpaque(false);
+							// id값 설정
 							draggablePanel.setName(id);
+							// 열린 DraggablePanel 추가
 							dragPanelOpenList.add(draggablePanel);
 
 							layeredPane = frame.getLayeredPane();
 
+							// 비디오 월 번호로 통합 컨트롤러 좌표 구함
 							int uiPointArray[] = getUiPoint(panelNumber);
 
+							// UI에 DraggablePanel을 좌표에 맞게 추가
 							layeredPane.add(draggablePanel, JLayeredPane.DEFAULT_LAYER);
 							draggablePanel.setBounds(uiPointArray[0], uiPointArray[1],
 									draggablePanel.getPreferredSize().width, draggablePanel.getPreferredSize().height);
 							draggablePanel.revalidate();
 						}
 					});
-				} else
+				}
+				// 통신에 실패한 경우
+				else
 					JOptionPane.showMessageDialog(frame, openDir + "컨텐츠 열기에 실패하였습니다\n응답코드 : " + code, "Warning",
 							JOptionPane.INFORMATION_MESSAGE);
 			}
-		} catch (Exception e) {
+		}
+		// 예외 사항인 경우
+		catch (Exception e) {
 			if (e != null && e.toString().contains("Connection refused")) {
 				JOptionPane.showMessageDialog(frame, "연결을 거부했습니다.\n" + e, "Warning", JOptionPane.INFORMATION_MESSAGE);
 			} else if (e != null && e.toString().contains("Connection timed out")) {
@@ -1600,9 +1627,12 @@ public class Controller_main extends JFrame {
 		}
 	}
 
+	// 비디오 월 번호로 통합 컨트롤러 좌표를 구함
 	private int[] getUiPoint(int panelNumber) {
+		// 초기화
 		int[] result = { 0, 0 };
 
+		// 비디오 월 번호에 따른 좌표를 result에 저장
 		if (1 <= panelNumber && panelNumber <= 4) {
 			result[0] = 290 + 204 * (panelNumber - 1);
 			result[1] = 262;
@@ -1610,13 +1640,16 @@ public class Controller_main extends JFrame {
 			result[0] = 290 + 204 * (panelNumber - 5);
 			result[1] = 381;
 		}
+		// 좌표 반환
 		return result;
 
 	}
 
+	// 비디오 월 번호에 따른 하이퍼월 컨트롤러 좌표 반환
 	private int[] getXYPoint(int panelNumber) {
+		// 초기화
 		int[] result = { 0, 0 };
-
+		// 비디오 월 번호에 따른 좌표 result 배열에 추가
 		if (panelNumber == 1) {
 			result[0] = -2880;
 			result[1] = 540;
@@ -1642,7 +1675,7 @@ public class Controller_main extends JFrame {
 			result[0] = 2880;
 			result[1] = -540;
 		}
-
+		// 좌표 반환
 		return result;
 	}
 
