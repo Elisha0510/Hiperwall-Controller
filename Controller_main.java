@@ -410,6 +410,7 @@ public class Controller_main extends JFrame {
 		mainSplitPane.setDividerLocation(250);
 
 		frame.getContentPane().add(mainSplitPane);
+		frame.setResizable(false);
 		frame.setVisible(true);
 	}
 
@@ -728,13 +729,10 @@ public class Controller_main extends JFrame {
 
 			ImageIcon imageIcon = new ImageIcon(text); // text로 이미지 경로 가져와서 imageIcon 생성
 			originalImage = imageIcon.getImage(); // 불러온 원본 이미지를 변수에 저장
-			Image scaledImage = originalImage.getScaledInstance(currentWidth, currentHeight, Image.SCALE_SMOOTH); // 가져올
-																													// 이미지를
-																													// 월
-																													// 한
-																													// 칸
-																													// 크기로
-																													// 조절
+
+			// 가져올 이미지를 비디오 월 한칸의 크기로 조절
+			Image scaledImage = originalImage.getScaledInstance(currentWidth, currentHeight, Image.SCALE_SMOOTH);
+
 			ImageIcon scaledIcon = new ImageIcon(scaledImage); // 크기 조절한 이미지를 바탕으로 ImageIcon 생성
 			this.label = new JLabel(scaledIcon); // label에 사진 붙여주기
 
@@ -745,8 +743,8 @@ public class Controller_main extends JFrame {
 			hitBoxPanel.setBounds(0, 0, currentWidth, currentHeight); // 조절점도 draggablePanel 크기(월 1칸)에 맞도록 설정
 
 			JLayeredPane layeredPane = new JLayeredPane(); // 겹치는 JLabel, hitBoxPanel 컴포넌트를 관리해주기 위해 사용
-			layeredPane.setPreferredSize(new Dimension(currentWidth, currentHeight)); // 지정한 크기로 내부에 추가되는 컴포넌트들이 올바르게
-																						// 표시되도록 설정
+			// 지정한 크기로 내부에 추가되는 컴포넌트들이 올바르게 표시되도록 설정
+			layeredPane.setPreferredSize(new Dimension(currentWidth, currentHeight));
 			layeredPane.add(this.label, Integer.valueOf(0)); // JLabel을 기본 레이어에 추가
 			layeredPane.add(hitBoxPanel, Integer.valueOf(1)); // HitBoxPanel을 레이어 1에 추가
 
@@ -792,15 +790,12 @@ public class Controller_main extends JFrame {
 				@Override
 				public void mouseReleased(MouseEvent e) {
 					if (e.getComponent() instanceof DraggablePanel) { // 이벤트 발생한 컴포넌트가 DraggablePanel인지 확인하기
-						DraggablePanel releasedPanel = (DraggablePanel) e.getComponent(); // releasedPanel = 이벤트가 발생한
-																							// 컴포넌트
-						releasedPanel.setSize(releasedPanel.currentWidth, releasedPanel.currentHeight); // 크기 조절을 끝낸 최종
-																										// 컴포넌트 크기 갱신
-						releasedPanel.label.setSize(releasedPanel.currentWidth, releasedPanel.currentHeight); // 크기 조절을
-																												// 끝낸 최종
-																												// 컴포넌트의
-																												// 이미지
-																												// 크기 갱신
+						// 이벤트가 발생한 컴포넌트
+						DraggablePanel releasedPanel = (DraggablePanel) e.getComponent();
+						// 크기 조절을 끝낸 최종 컴포넌트 크기 갱신
+						releasedPanel.setSize(releasedPanel.currentWidth, releasedPanel.currentHeight);
+						// 크기 조절을 끝낸 최종 컴포넌트의 이미지 갱신
+						releasedPanel.label.setSize(releasedPanel.currentWidth, releasedPanel.currentHeight);
 						revalidate();
 						hitBoxIndex = -1;
 					}
@@ -830,9 +825,8 @@ public class Controller_main extends JFrame {
 
 						for (DraggablePanel panel : dragPanelOpenList) {
 							if (panel.getName().equals(draggedPanel.getName())) {
-								panel.setSize(draggedPanel.getWidth(), draggedPanel.getHeight()); // dragPanelOpenList를
-																									// 전부 순회해서 해당 패널을 찾아
-																									// 속성 업데이트
+								// dragPanelOpenList를 전부 순회해서 해당 패널을 찾아 속성 업데이트
+								panel.setSize(draggedPanel.getWidth(), draggedPanel.getHeight());
 								break;
 							}
 						}
@@ -1196,9 +1190,8 @@ public class Controller_main extends JFrame {
 			ratioH = currentHeight / originalHeight;
 			createHitBoxes();
 			hitBoxPanel.setBounds(0, 0, currentWidth, currentHeight);
-
-			dropSendSizeChangeXML(this.getName(), panelResult, ratioW, ratioH, 0, 0); // 함수 호출해서 통합 컨트롤러에서 변경할 때마다 하이퍼월
-																						// 컨트롤러도 변경
+			// 함수 호출해서 통합 컨트롤러에서 변경할 때마다 컨트롤러도 변경
+			dropSendSizeChangeXML(this.getName(), panelResult, ratioW, ratioH, 0, 0);
 			revalidate();
 		}
 
@@ -1209,8 +1202,8 @@ public class Controller_main extends JFrame {
 
 				int[] pointArray = getXYPoint(panelNumber); // 패널 번호에 따른 하이퍼월 컨트롤러의 좌표를 계산하기
 
-				String xmlString = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\" ?>"; // xmlString 변수에다
-																									// 변경값을 보낼 XML 명령 작성
+				// 변경 값을 보낼 XML 명령 작성
+				String xmlString = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"no\" ?>";
 				xmlString += "<Commands>";
 				xmlString += "<command type=\"change\">";
 				xmlString += "<id>" + id + "</id>";
@@ -1291,11 +1284,10 @@ public class Controller_main extends JFrame {
 
 							int uiPointArray[] = getUiPoint(panelNumber); // panelNumber에 해당하는 통합 컨트롤러의 UI 좌표 계산하기
 
+							// 선택된 패널의 위치와 크기 설정
 							selectedPanel.setBounds(uiPointArray[0], uiPointArray[1],
 									(int) (selectedPanel.getPreferredSize().width * currentWidthRatio),
-									(int) (selectedPanel.getPreferredSize().height * currentHeightRatio)); // 선택된 패널의
-																											// 위치와 크기
-																											// 설정하기
+									(int) (selectedPanel.getPreferredSize().height * currentHeightRatio));
 							selectedPanel.revalidate();
 						}
 					});
